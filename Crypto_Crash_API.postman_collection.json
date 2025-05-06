@@ -1,0 +1,319 @@
+{
+	"info": {
+		"_postman_id": "7e8f5b1d-3a9b-4b8c-a5c1-f6b2c0e9d4a8",
+		"name": "Crypto Crash API",
+		"description": "API collection for testing the Crypto Crash game endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Players",
+			"item": [
+				{
+					"name": "Create Player",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testplayer\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/players",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"players"
+							]
+						},
+						"description": "Create a new player with the given username"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Players",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/players",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"players"
+							]
+						},
+						"description": "Get a list of all players"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/players/{{playerId}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"players",
+								"{{playerId}}"
+							]
+						},
+						"description": "Get a player by their ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Wallet Balance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/players/{{playerId}}/wallet",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"players",
+								"{{playerId}}",
+								"wallet"
+							]
+						},
+						"description": "Get a player's wallet balance with USD equivalents"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing players"
+		},
+		{
+			"name": "Games",
+			"item": [
+				{
+					"name": "Get Game State",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/games/state",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"state"
+							]
+						},
+						"description": "Get the current game state"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Game History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/games/history?limit=10&page=1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"history"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get game history with pagination"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Game by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/games/{{gameId}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"{{gameId}}"
+							]
+						},
+						"description": "Get a game by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Place Bet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"playerId\": \"{{playerId}}\",\n    \"usdAmount\": 10,\n    \"cryptocurrency\": \"bitcoin\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/games/bet",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"bet"
+							]
+						},
+						"description": "Place a bet in USD, converting to cryptocurrency"
+					},
+					"response": []
+				},
+				{
+					"name": "Cash Out",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"playerId\": \"{{playerId}}\",\n    \"betId\": \"{{betId}}\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/games/cashout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"cashout"
+							]
+						},
+						"description": "Cash out from an active game"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Game Fairness",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/games/{{gameId}}/verify",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"games",
+								"{{gameId}}",
+								"verify"
+							]
+						},
+						"description": "Verify the fairness of a completed game"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing games"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "playerId",
+			"value": "",
+			"type": "string",
+			"description": "ID of the player to use for requests"
+		},
+		{
+			"key": "gameId",
+			"value": "",
+			"type": "string",
+			"description": "ID of the game to use for requests"
+		},
+		{
+			"key": "betId",
+			"value": "",
+			"type": "string",
+			"description": "ID of the bet to use for cashout"
+		}
+	]
+}

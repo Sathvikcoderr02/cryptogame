@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Crash Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f1923;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-container {
+            background-color: #1a2634;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .multiplier {
+            font-size: 4rem;
+            font-weight: bold;
+            text-align: center;
+            color: #4caf50;
+            margin: 20px 0;
+        }
+        .crashed {
+            color: #f44336;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .countdown {
+            font-size: 2rem;
+            text-align: center;
+            margin: 20px 0;
+            color: #ff9800;
+        }
+        .bet-controls {
+            background-color: #1a2634;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .player-info {
+            background-color: #1a2634;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .history-container {
+            background-color: #1a2634;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .history-item {
+            display: inline-block;
+            width: 60px;
+            height: 40px;
+            margin: 5px;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+        }
+        .low {
+            background-color: #f44336;
+        }
+        .medium {
+            background-color: #ff9800;
+        }
+        .high {
+            background-color: #4caf50;
+        }
+        .cashout-btn {
+            font-size: 1.5rem;
+            padding: 10px 30px;
+        }
+        .player-bets {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .crypto-select {
+            background-color: #2c3e50;
+            color: white;
+            border: 1px solid #34495e;
+        }
+        .form-control {
+            background-color: #2c3e50;
+            color: white;
+            border: 1px solid #34495e;
+        }
+        .form-control:focus {
+            background-color: #34495e;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Crypto Crash Game</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="game-container">
+                    <div id="game-status" class="text-center mb-3">
+                        Waiting for next round...
+                    </div>
+                    <div id="multiplier" class="multiplier">1.00x</div>
+                    <div id="countdown" class="countdown"></div>
+                    <div class="text-center">
+                        <button id="cashout-btn" class="btn btn-success cashout-btn" disabled>Cash Out</button>
+                    </div>
+                </div>
+                
+                <div class="history-container">
+                    <h4>Game History</h4>
+                    <div id="game-history" class="d-flex flex-wrap"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="player-info mb-4">
+                    <h4>Player Info</h4>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="username" placeholder="Enter username">
+                            <button class="btn btn-primary" id="create-player-btn">Create</button>
+                        </div>
+                    </div>
+                    <div id="wallet-info">
+                        <p>USD Balance: <span id="usd-balance">$0.00</span></p>
+                        <p>BTC Balance: <span id="btc-balance">0.00000000</span> (<span id="btc-usd">$0.00</span>)</p>
+                        <p>ETH Balance: <span id="eth-balance">0.00000000</span> (<span id="eth-usd">$0.00</span>)</p>
+                    </div>
+                </div>
+                
+                <div class="bet-controls">
+                    <h4>Place Bet</h4>
+                    <div class="mb-3">
+                        <label for="bet-amount" class="form-label">Bet Amount (USD)</label>
+                        <input type="number" class="form-control" id="bet-amount" min="1" step="1" value="10">
+                    </div>
+                    <div class="mb-3">
+                        <label for="crypto-select" class="form-label">Cryptocurrency</label>
+                        <select class="form-select crypto-select" id="crypto-select">
+                            <option value="bitcoin">Bitcoin (BTC)</option>
+                            <option value="ethereum">Ethereum (ETH)</option>
+                        </select>
+                    </div>
+                    <button id="place-bet-btn" class="btn btn-primary w-100">Place Bet</button>
+                </div>
+                
+                <div class="player-bets mt-4">
+                    <h4>Active Bets</h4>
+                    <ul id="active-bets" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Connect to WebSocket server
+        const socket = io();
+        
+        // DOM elements
+        const gameStatus = document.getElementById('game-status');
+        const multiplierElement = document.getElementById('multiplier');
+        const countdownElement = document.getElementById('countdown');
+        const cashoutBtn = document.getElementById('cashout-btn');
+        const gameHistory = document.getElementById('game-history');
+        const usernameInput = document.getElementById('username');
+        const createPlayerBtn = document.getElementById('create-player-btn');
+        const usdBalance = document.getElementById('usd-balance');
+        const btcBalance = document.getElementById('btc-balance');
+        const ethBalance = document.getElementById('eth-balance');
+        const btcUsd = document.getElementById('btc-usd');
+        const ethUsd = document.getElementById('eth-usd');
+        const betAmount = document.getElementById('bet-amount');
+        const cryptoSelect = document.getElementById('crypto-select');
+        const placeBetBtn = document.getElementById('place-bet-btn');
+        const activeBets = document.getElementById('active-bets');
+        
+        // Game state
+        let currentPlayerId = localStorage.getItem('playerId');
+        let currentUsername = localStorage.getItem('username');
+        let isGameActive = false;
+        let currentBets = [];
+        let cryptoPrices = {
+            bitcoin: 0,
+            ethereum: 0
+        };
+        
+        // Initialize player if exists
+        if (currentPlayerId && currentUsername) {
+            usernameInput.value = currentUsername;
+            fetchPlayerWallet(currentPlayerId);
+        }
+        
+        // Create player
+        createPlayerBtn.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/players', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentPlayerId = data.player.id;
+                    currentUsername = data.player.username;
+                    
+                    localStorage.setItem('playerId', currentPlayerId);
+                    localStorage.setItem('username', currentUsername);
+                    
+                    alert(`Player created: ${currentUsername}`);
+                    fetchPlayerWallet(currentPlayerId);
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error creating player:', error);
+                alert('Failed to create player');
+            }
+        });
+        
+        // Fetch player wallet
+        async function fetchPlayerWallet(playerId) {
+            try {
+                console.log('Fetching wallet for player:', playerId);
+                const response = await fetch(`/api/players/${playerId}/wallet`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Wallet data received:', data);
+                
+                if (response.ok) {
+                    updateWalletDisplay(data);
+                } else {
+                    console.error('Error fetching wallet:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching wallet:', error);
+            }
+        }
+        
+        // Update wallet display
+        function updateWalletDisplay(walletData) {
+            console.log('Updating wallet display with data:', walletData);
+            
+            if (!walletData || !walletData.wallets) {
+                console.error('Invalid wallet data received');
+                return;
+            }
+            
+            // Update USD balance
+            if (walletData.wallets.usd) {
+                usdBalance.textContent = `$${walletData.wallets.usd.balance.toFixed(2)}`;
+            }
+            
+            // Update BTC balance
+            if (walletData.wallets.bitcoin) {
+                const btcBal = walletData.wallets.bitcoin.balance || 0;
+                const btcUsdVal = walletData.wallets.bitcoin.usdEquivalent || 0;
+                btcBalance.textContent = btcBal.toFixed(8);
+                btcUsd.textContent = `$${btcUsdVal.toFixed(2)}`;
+                
+                // Update crypto price if balance is not zero
+                if (btcBal > 0) {
+                    cryptoPrices.bitcoin = btcUsdVal / btcBal;
+                }
+            }
+            
+            // Update ETH balance
+            if (walletData.wallets.ethereum) {
+                const ethBal = walletData.wallets.ethereum.balance || 0;
+                const ethUsdVal = walletData.wallets.ethereum.usdEquivalent || 0;
+                ethBalance.textContent = ethBal.toFixed(8);
+                ethUsd.textContent = `$${ethUsdVal.toFixed(2)}`;
+                
+                // Update crypto price if balance is not zero
+                if (ethBal > 0) {
+                    cryptoPrices.ethereum = ethUsdVal / ethBal;
+                }
+            }
+            
+            console.log('Wallet display updated');
+        }
+        
+        // Place bet
+        placeBetBtn.addEventListener('click', async () => {
+            if (!currentPlayerId) {
+                alert('Please create a player first');
+                return;
+            }
+            
+            if (isGameActive) {
+                alert('Cannot place bet while game is in progress');
+                return;
+            }
+            
+            const amount = parseFloat(betAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid bet amount');
+                return;
+            }
+            
+            const cryptocurrency = cryptoSelect.value;
+            
+            try {
+                const response = await fetch('/api/games/bet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playerId: currentPlayerId,
+                        usdAmount: amount,
+                        cryptocurrency
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    console.log('Bet placed successfully:', data);
+                    alert(`Bet placed: $${amount} in ${cryptocurrency}`);
+                    
+                    // Add to active bets
+                    currentBets.push(data.bet);
+                    updateActiveBets();
+                    
+                    // Update wallet balance
+                    fetchPlayerWallet(currentPlayerId);
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error placing bet:', error);
+                alert('Failed to place bet');
+            }
+        });
+        
+        // Update active bets display
+        function updateActiveBets() {
+            activeBets.innerHTML = '';
+            
+            currentBets.forEach(bet => {
+                if (bet.status === 'active') {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.style.backgroundColor = '#2c3e50';
+                    li.style.color = 'white';
+                    li.style.marginBottom = '5px';
+                    
+                    const cryptoSymbol = bet.cryptocurrency === 'bitcoin' ? 'BTC' : 'ETH';
+                    
+                    li.innerHTML = `
+                        <div>
+                            <strong>$${bet.usdAmount.toFixed(2)}</strong>
+                            <br>
+                            <small>${bet.cryptoAmount.toFixed(8)} ${cryptoSymbol}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">${bet.status}</span>
+                    `;
+                    
+                    activeBets.appendChild(li);
+                }
+            });
+            
+            if (activeBets.children.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.style.backgroundColor = '#2c3e50';
+                li.style.color = 'white';
+                li.textContent = 'No active bets';
+                activeBets.appendChild(li);
+            }
+        }
+        
+        // Cash out
+        cashoutBtn.addEventListener('click', async () => {
+            if (!currentPlayerId) {
+                alert('Please create a player first');
+                return;
+            }
+            
+            if (!isGameActive) {
+                alert('No active game to cash out from');
+                return;
+            }
+            
+            const activeBet = currentBets.find(bet => bet.status === 'active');
+            if (!activeBet) {
+                alert('No active bet to cash out');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/games/cashout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playerId: currentPlayerId,
+                        betId: activeBet.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Update bet status
+                    activeBet.status = 'cashed_out';
+                    updateActiveBets();
+                    
+                    // Disable cashout button
+                    cashoutBtn.disabled = true;
+                    
+                    // Fetch updated wallet
+                    fetchPlayerWallet(currentPlayerId);
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error cashing out:', error);
+                alert('Failed to cash out');
+            }
+        });
+        
+        // Update game state display
+        function updateGameStateDisplay(state) {
+            isGameActive = state.isActive;
+            
+            if (state.isActive) {
+                gameStatus.textContent = `Round ${state.roundId} in progress`;
+                multiplierElement.textContent = `${state.multiplier.toFixed(2)}x`;
+                multiplierElement.classList.remove('crashed');
+                countdownElement.textContent = '';
+                cashoutBtn.disabled = false;
+                placeBetBtn.disabled = true;
+                
+                // Change button color to indicate it's disabled
+                placeBetBtn.classList.add('btn-secondary');
+                placeBetBtn.classList.remove('btn-primary');
+            } else {
+                gameStatus.textContent = 'Waiting for next round...';
+                multiplierElement.textContent = '1.00x';
+                
+                // Enable bet button
+                placeBetBtn.disabled = false;
+                placeBetBtn.classList.add('btn-primary');
+                placeBetBtn.classList.remove('btn-secondary');
+                
+                // Show countdown to next game
+                if (state.nextGameIn > 0) {
+                    const secondsLeft = Math.ceil(state.nextGameIn / 1000);
+                    countdownElement.textContent = `Next round in ${secondsLeft}s - PLACE YOUR BETS NOW!`;
+                    countdownElement.style.color = '#ff9800';  // Orange for visibility
+                } else {
+                    countdownElement.textContent = 'Starting soon...';
+                }
+                
+                cashoutBtn.disabled = true;
+            }
+        }
+        
+        // WebSocket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+        
+        socket.on('gameState', (state) => {
+            console.log('Game state:', state);
+            updateGameStateDisplay(state);
+        });
+        
+        socket.on('gameStart', (data) => {
+            console.log('Game started:', data);
+            
+            isGameActive = true;
+            gameStatus.textContent = `Round ${data.roundId} started`;
+            multiplierElement.textContent = '1.00x';
+            multiplierElement.classList.remove('crashed');
+            countdownElement.textContent = '';
+            
+            // Disable bet button during game
+            placeBetBtn.disabled = true;
+            placeBetBtn.classList.add('btn-secondary');
+            placeBetBtn.classList.remove('btn-primary');
+            
+            // Enable cashout button if player has active bets
+            const hasActiveBets = currentBets.some(bet => bet.status === 'active');
+            cashoutBtn.disabled = !hasActiveBets;
+        });
+        
+        socket.on('multiplierUpdate', (data) => {
+            multiplierElement.textContent = `${data.multiplier.toFixed(2)}x`;
+            
+            // Change color based on multiplier value
+            if (data.multiplier >= 10) {
+                multiplierElement.style.color = '#4caf50'; // Green
+            } else if (data.multiplier >= 5) {
+                multiplierElement.style.color = '#ff9800'; // Orange
+            } else if (data.multiplier >= 2) {
+                multiplierElement.style.color = '#2196f3'; // Blue
+            } else {
+                multiplierElement.style.color = '#ffffff'; // White
+            }
+        });
+        
+        socket.on('playerCashout', (data) => {
+            console.log('Player cashed out:', data);
+            
+            // If this is the current player, update their bet
+            if (data.playerId === currentPlayerId) {
+                // Find and update the bet
+                const bet = currentBets.find(bet => bet.status === 'active');
+                if (bet) {
+                    bet.status = 'cashed_out';
+                    updateActiveBets();
+                    
+                    // Disable cashout button
+                    cashoutBtn.disabled = true;
+                    
+                    // Fetch updated wallet
+                    fetchPlayerWallet(currentPlayerId);
+                }
+            }
+        });
+        
+        socket.on('cashoutSuccess', (data) => {
+            console.log('Cashout success:', data);
+            
+            // Find and update the bet
+            const bet = currentBets.find(bet => bet.id === data.betId);
+            if (bet) {
+                bet.status = 'cashed_out';
+                updateActiveBets();
+                
+                // Disable cashout button
+                cashoutBtn.disabled = true;
+                
+                // Fetch updated wallet
+                fetchPlayerWallet(currentPlayerId);
+            }
+        });
+        
+        socket.on('gameEnd', (data) => {
+            console.log('Game ended:', data);
+            
+            isGameActive = false;
+            gameStatus.textContent = `Round crashed at ${data.crashPoint.toFixed(2)}x`;
+            multiplierElement.textContent = `${data.crashPoint.toFixed(2)}x`;
+            multiplierElement.classList.add('crashed');
+            cashoutBtn.disabled = true;
+            
+            // Enable bet button between games
+            placeBetBtn.disabled = false;
+            placeBetBtn.classList.add('btn-primary');
+            placeBetBtn.classList.remove('btn-secondary');
+            
+            // Show message to place bets
+            countdownElement.textContent = 'PLACE YOUR BETS FOR NEXT ROUND!';
+            countdownElement.style.color = '#4caf50';  // Green for visibility
+            
+            // Add to history
+            addToHistory(data.crashPoint);
+            
+            // Update active bets to lost
+            currentBets.forEach(bet => {
+                if (bet.status === 'active') {
+                    bet.status = 'lost';
+                }
+            });
+            updateActiveBets();
+            
+            // Fetch updated wallet
+            if (currentPlayerId) {
+                fetchPlayerWallet(currentPlayerId);
+            }
+        });
+        
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            alert(`Error: ${error.message}`);
+        });
+        
+        // Add crash point to history
+        function addToHistory(crashPoint) {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.textContent = `${crashPoint.toFixed(2)}x`;
+            
+            // Set color based on crash point value
+            if (crashPoint >= 10) {
+                historyItem.classList.add('high');
+            } else if (crashPoint >= 2) {
+                historyItem.classList.add('medium');
+            } else {
+                historyItem.classList.add('low');
+            }
+            
+            // Add to beginning of history
+            gameHistory.insertBefore(historyItem, gameHistory.firstChild);
+            
+            // Limit history items
+            if (gameHistory.children.length > 10) {
+                gameHistory.removeChild(gameHistory.lastChild);
+            }
+        }
+        
+        // Fetch game history on load
+        async function fetchGameHistory() {
+            try {
+                const response = await fetch('/api/games/history?limit=10');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Clear history
+                    gameHistory.innerHTML = '';
+                    
+                    // Add history items in reverse order (newest first)
+                    data.games.forEach(game => {
+                        addToHistory(game.crashPoint);
+                    });
+                } else {
+                    console.error('Error fetching game history:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching game history:', error);
+            }
+        }
+        
+        // Initialize
+        fetchGameHistory();
+        updateActiveBets();
+    </script>
+</body>
+</html>
