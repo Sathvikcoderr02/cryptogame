@@ -50,19 +50,7 @@ A real-time multiplayer "Crash" betting game with cryptocurrency integration. Pl
    npm install
    ```
 
-3. Configure environment variables:
-   Create a `.env` file in the root directory with the following variables:
-   ```
-   PORT=3000
-   MONGODB_URI=mongodb://localhost:27017/cryptogame
-   CRYPTO_API_KEY=CG-Dkdg2euzJjwKHmHSj5qUF8p1
-   CRYPTO_API_URL=https://api.coingecko.com/api/v3
-   GAME_INTERVAL=20000
-   ```
-   
-   Notes:
-   - `CRYPTO_API_KEY`: This is a demo API key for CoinGecko. For production use, you should register for your own API key at [CoinGecko](https://www.coingecko.com/en/api).
-   - `GAME_INTERVAL`: Time in milliseconds between game rounds (20 seconds by default).
+
 
 4. Start MongoDB:
    Make sure MongoDB is running on your system. If using a local installation:
